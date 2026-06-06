@@ -1,6 +1,6 @@
 ---
 name: simple-project-wiki
-description: Shared policy and installation guidance for code-grounded `.wiki` project knowledge bases. Use when Codex is asked to install, configure, adapt, or explain the simple-project-wiki skill group; add AGENTS.md or CLAUDE.md wiki guidance; choose project-specific `.wiki/*.json` configuration; or decide which sibling skill to use. For initialization use $simple-project-wiki-init; for refresh use $simple-project-wiki-update; for ordinary wiki-first lookup use $simple-project-wiki-search.
+description: Shared policy and installation guidance for code-grounded `.spwiki` project knowledge bases. Use when Codex is asked to install, configure, adapt, or explain the simple-project-wiki skill group; add AGENTS.md or CLAUDE.md wiki guidance; choose project-specific `.spwiki/*.json` configuration; or decide which sibling skill to use. For initialization use $simple-project-wiki-init; for refresh use $simple-project-wiki-update; for ordinary wiki-first lookup use $simple-project-wiki-search.
 ---
 
 # Simple Project Wiki
@@ -8,9 +8,9 @@ description: Shared policy and installation guidance for code-grounded `.wiki` p
 This is the shared policy skill for the `simple-project-wiki` skill group. The group is a set of Codex Skills, not a plugin and not text commands:
 
 - `$simple-project-wiki`: shared policy, installation guidance, and ordinary wiki usage.
-- `$simple-project-wiki-init`: initialize `.wiki` for a root project and detected subprojects.
-- `$simple-project-wiki-update`: refresh existing `.wiki` from current code.
-- `$simple-project-wiki-search`: search and use existing `.wiki` before source verification.
+- `$simple-project-wiki-init`: initialize `.spwiki` for a root project and detected subprojects.
+- `$simple-project-wiki-update`: refresh existing `.spwiki` from current code.
+- `$simple-project-wiki-search`: search and use existing `.spwiki` before source verification.
 
 Shared scripts and references live in this skill directory:
 
@@ -20,6 +20,7 @@ Shared scripts and references live in this skill directory:
 - `scripts/check_wiki_ready.py`
 - `scripts/plan_wiki_update.py`
 - `scripts/search_wiki.py`
+- `scripts/uninstall_wiki.py`
 - `scripts/wiki_common.py`
 - `references/wiki-structure.md`
 - `references/wiki-generation-prompt.md`
@@ -29,28 +30,31 @@ Shared scripts and references live in this skill directory:
 - `references/claude-code-adapter.md`
 - `references/agent-operation-manual.md`
 - `references/post-build-usage-guide.md`
+- `references/uninstall-guide.md`
 
 ## Wiki Contract
 
-- Default content path: `.wiki/zh/content`; scripts also support `.wiki/en/content` and other language roots declared in `.wiki/config.json`.
-- Each project gets its own `.wiki/config.json` and `.wiki/wiki-index.json`.
+- Content path: `.spwiki/<language>/content` from `.spwiki/config.json`. The language is chosen at init (explicit user choice, otherwise the detected system language) and is then authoritative for all maintenance; each language has its own root such as `.spwiki/zh/content`, `.spwiki/en/content`, or `.spwiki/kr/content`.
+- All wiki files are written as UTF-8 so the configured language renders correctly; never write through a legacy codepage that produces `???`/`�`.
+- Each project gets its own `.spwiki/config.json` and `.spwiki/wiki-index.json`.
 - Monorepos get one root wiki plus one wiki per detected subproject.
+- `scan_project.py` respects each project's `.gitignore` (root and subprojects); ignored/generated files are not treated as source.
 - Topic directories use localized display names and include a same-name index page, for example `架构设计/架构设计.md` or `Architecture/Architecture.md`.
-- Project-specific terms, search aliases, topic overrides, and risk rules live in `.wiki/project-aliases.json`, `.wiki/search-hints.json`, `.wiki/topic-overrides.json`, and `.wiki/risk-profile.json`; do not hard-code project business terms in the skill.
-- Ignore `.qoder/repowiki`; do not migrate, copy, or treat it as source of truth.
-- `.wiki` is an orientation aid. Current source code is the final authority.
+- Project-specific terms, search aliases, topic overrides, and risk rules live in `.spwiki/project-aliases.json`, `.spwiki/search-hints.json`, `.spwiki/topic-overrides.json`, and `.spwiki/risk-profile.json`; do not hard-code project business terms in the skill.
+- `.spwiki` is an orientation aid. Current source code is the final authority.
+- To uninstall, follow `references/uninstall-guide.md`: removing the skill is complete only when the generated `.spwiki/` folders are deleted (use `scripts/uninstall_wiki.py <root> --delete`).
 
 ## Ordinary Project Work
 
 For project access, query, search, analysis, review, or modification tasks:
 
-1. Before broad repository grep, check for `.wiki/wiki-index.json` at the root and relevant subprojects.
+1. Before broad repository grep, check for `.spwiki/wiki-index.json` at the root and relevant subprojects.
 2. If an index exists and the query is known, run `python scripts/search_wiki.py <project-root> "<query>" --json`.
 3. Open only the top relevant pages or heading ranges returned by `heading_hits`.
 4. Use `source_refs` to locate source files and verify every implementation fact before answering or editing.
 5. If wiki and source disagree, trust source code and treat the wiki as stale.
-6. If `.wiki` is missing, do not initialize it automatically during ordinary work; suggest `$simple-project-wiki-init`.
-7. Do not update wiki after code changes unless the user explicitly asks, invokes `$simple-project-wiki-update`, or `.wiki/config.json` has `auto_update_after_code_change: true`.
+6. If `.spwiki` is missing, do not initialize it automatically during ordinary work; suggest `$simple-project-wiki-init`.
+7. Do not update wiki after code changes unless the user explicitly asks, invokes `$simple-project-wiki-update`, or `.spwiki/config.json` has `auto_update_after_code_change: true`.
 
 For focused wiki lookup, use `$simple-project-wiki-search`.
 
@@ -63,7 +67,7 @@ When installing this skill group for Codex, add this requirement to project `AGE
 ```markdown
 ## Project Wiki Usage
 
-When querying, searching, locating, or analyzing this project, prefer the `simple-project-wiki` skills first. Use `.wiki` as the initial navigation and knowledge source, then verify all implementation facts against the current source code.
+When querying, searching, locating, or analyzing this project, prefer the `simple-project-wiki` skills first. Use `.spwiki` as the initial navigation and knowledge source, then verify all implementation facts against the current source code.
 ```
 
 Chinese equivalent:
@@ -71,7 +75,7 @@ Chinese equivalent:
 ```markdown
 ## 项目知识库使用要求
 
-对本项目进行查询、搜索、定位或分析时，执行全仓 grep 前先检查 `.wiki/wiki-index.json`；优先使用 `simple-project-wiki-search` 或 `search_wiki.py` 定位页面、heading 段和 `source_refs`，再回到当前源码验证所有实现事实。
+对本项目进行查询、搜索、定位或分析时，执行全仓 grep 前先检查 `.spwiki/wiki-index.json`；优先使用 `simple-project-wiki-search` 或 `search_wiki.py` 定位页面、heading 段和 `source_refs`，再回到当前源码验证所有实现事实。
 ```
 
 When installing for Claude Code, add this requirement to project `CLAUDE.md`:
@@ -79,7 +83,7 @@ When installing for Claude Code, add this requirement to project `CLAUDE.md`:
 ```markdown
 ## Project Wiki Usage
 
-When querying, searching, locating, or analyzing this project, prefer the `simple-project-wiki` skills or equivalent project wiki workflow first. Use `.wiki` as the initial navigation and knowledge source, then verify all implementation facts against the current source code.
+When querying, searching, locating, or analyzing this project, prefer the `simple-project-wiki` skills or equivalent project wiki workflow first. Use `.spwiki` as the initial navigation and knowledge source, then verify all implementation facts against the current source code.
 ```
 
 Chinese equivalent:
@@ -87,7 +91,7 @@ Chinese equivalent:
 ```markdown
 ## 项目知识库使用要求
 
-对本项目进行查询、搜索、定位或分析时，应优先使用 `simple-project-wiki` 相关技能或等价的项目知识库工作流；先使用 `.wiki` 作为项目知识库和定位入口，再回到当前源码验证所有实现事实。
+对本项目进行查询、搜索、定位或分析时，应优先使用 `simple-project-wiki` 相关技能或等价的项目知识库工作流；先使用 `.spwiki` 作为项目知识库和定位入口，再回到当前源码验证所有实现事实。
 ```
 
 Only edit `AGENTS.md` or `CLAUDE.md` when the user asks for installation/configuration or explicitly asks to update those project guidance files.
@@ -98,7 +102,7 @@ For initialization or update runs performed by less reliable agents, require `re
 
 ## Default Config
 
-Every initialized project wiki should have `.wiki/config.json`:
+Every initialized project wiki should have `.spwiki/config.json`. `language`/`content_root` come from the language chosen at init (the detected system language when the user does not specify one) and are authoritative afterwards:
 
 ```json
 {
@@ -107,7 +111,6 @@ Every initialized project wiki should have `.wiki/config.json`:
   "profile": "deep",
   "auto_update_after_code_change": false,
   "token_strategy": "prefilter_batch",
-  "ignore_qoder": true,
   "index_schema_version": 2,
   "strict_ready_required": true
 }
@@ -115,10 +118,10 @@ Every initialized project wiki should have `.wiki/config.json`:
 
 Optional project-specific sidecar files:
 
-- `.wiki/topic-overrides.json`: override or append project-specific topics and page structures.
-- `.wiki/project-aliases.json`: map domain terms to synonyms, modules, pages, routes, or symbols.
-- `.wiki/search-hints.json`: define synonyms, topic hints, and config-key prefixes used by search/update scripts.
-- `.wiki/risk-profile.json`: define project-specific risk flags and matching keywords.
+- `.spwiki/topic-overrides.json`: override or append project-specific topics and page structures.
+- `.spwiki/project-aliases.json`: map domain terms to synonyms, modules, pages, routes, or symbols.
+- `.spwiki/search-hints.json`: define synonyms, topic hints, and config-key prefixes used by search/update scripts.
+- `.spwiki/risk-profile.json`: define project-specific risk flags and matching keywords.
 
 ## Hash Strategy
 
@@ -139,3 +142,4 @@ Optional project-specific sidecar files:
 - For Claude Code adaptation: read `references/claude-code-adapter.md`.
 - For strict agent behavior during init/update/search: read `references/agent-operation-manual.md`.
 - For daily use after a wiki is built: read `references/post-build-usage-guide.md`.
+- For removing the skill and the generated `.spwiki/` folders: read `references/uninstall-guide.md`.

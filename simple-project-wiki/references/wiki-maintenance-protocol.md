@@ -1,19 +1,18 @@
 # Simple Project Wiki Protocol
 
-Use this protocol whenever a project already has `.wiki`, or when the user invokes `$simple-project-wiki-init`, `$simple-project-wiki-update`, or `$simple-project-wiki-search`.
+Use this protocol whenever a project already has `.spwiki`, or when the user invokes `$simple-project-wiki-init`, `$simple-project-wiki-update`, or `$simple-project-wiki-search`.
 
 ## Daily Project Work
 
 For project access, query, analysis, review, or modification tasks:
 
-1. Check whether the root project or relevant subproject has `.wiki/wiki-index.json` or the configured `.wiki/<language>/content`.
+1. Check whether the root project or relevant subproject has `.spwiki/wiki-index.json` or the configured `.spwiki/<language>/content`.
 2. If it exists, search the root wiki first, then the relevant subproject wiki. Prefer `search_wiki.py` for keyword, route, symbol, path, config-key, or risk lookups; use returned `heading_hits` to avoid opening full pages.
 3. Use the wiki as a fast orientation manual only. Verify implementation facts in current source before answering or editing.
 4. If wiki and source disagree, source code wins.
-5. Ignore `.qoder/repowiki`; do not copy, migrate, or rely on it.
-6. Do not update wiki documents automatically after code changes unless `.wiki/config.json` explicitly sets `auto_update_after_code_change` to `true`.
+6. Do not update wiki documents automatically after code changes unless `.spwiki/config.json` explicitly sets `auto_update_after_code_change` to `true`.
 
-If `.wiki` is missing during an ordinary task, tell the user they can use `$simple-project-wiki-init`. Do not initialize automatically unless the user invoked that skill or explicitly asked to initialize the wiki.
+If `.spwiki` is missing during an ordinary task, tell the user they can use `$simple-project-wiki-init`. Do not initialize automatically unless the user invoked that skill or explicitly asked to initialize the wiki.
 
 ## Initialization Skill
 
@@ -21,8 +20,8 @@ If `.wiki` is missing during an ordinary task, tell the user they can use `$simp
 
 - Scan the root project and detected subprojects.
 - Run a readiness check for each project.
-- If a project already has the core structure, `.wiki/wiki-index.json`, and strict readiness passes, skip it.
-- Otherwise create `.wiki/config.json`, sidecar project config files, create a `deep` `.wiki/<language>/content` skeleton, build `.wiki/wiki-index.json`, then generate complete first-version grounded Markdown content in batches.
+- If a project already has the core structure, `.spwiki/wiki-index.json`, and strict readiness passes, skip it.
+- Otherwise create `.spwiki/config.json`, sidecar project config files, create a `deep` `.spwiki/<language>/content` skeleton, build `.spwiki/wiki-index.json`, then generate complete first-version grounded Markdown content in batches.
 - A TODO skeleton is not complete. Replace placeholders with source-grounded content before reporting completion.
 - Do not overwrite existing wiki pages unless explicitly requested.
 
@@ -31,16 +30,16 @@ If `.wiki` is missing during an ordinary task, tell the user they can use `$simp
 `$simple-project-wiki-update` means:
 
 - Scan the current root and subprojects.
-- Prefilter likely update targets using `.wiki/config.json`, `.wiki/wiki-index.json`, source refs, changed files when known, topic mapping, and entity-level index fields such as routes, symbols, config keys, tags, and risk flags.
-- Use `.wiki/search-hints.json` and `.wiki/risk-profile.json` for project-specific topic/risk routing.
-- Compare current source sha256 values with `source_fingerprints` in `.wiki/wiki-index.json`; skip pages only when all associated source hashes are unchanged.
+- Prefilter likely update targets using `.spwiki/config.json`, `.spwiki/wiki-index.json`, source refs, changed files when known, topic mapping, and entity-level index fields such as routes, symbols, config keys, tags, and risk flags.
+- Use `.spwiki/search-hints.json` and `.spwiki/risk-profile.json` for project-specific topic/risk routing.
+- Compare current source sha256 values with `source_fingerprints` in `.spwiki/wiki-index.json`; skip pages only when all associated source hashes are unchanged.
 - Treat missing hashes, missing files, new refs, changed sha256 values, unlinked changed files, or project-shape changes as update candidates.
-- Directly update stale Markdown pages, create missing pages, delete or merge pages that describe removed functionality, and rebuild `.wiki/wiki-index.json`.
+- Directly update stale Markdown pages, create missing pages, delete or merge pages that describe removed functionality, and rebuild `.spwiki/wiki-index.json`.
 - Report the pages changed and the reason in the final response. Do not write a changelog file.
 
 ## Code Change Maintenance
 
-After code edits, do not maintain the wiki unless the user explicitly asks for it or `.wiki/config.json` has `auto_update_after_code_change: true`. When enabled, maintain the wiki only when all of these are true:
+After code edits, do not maintain the wiki unless the user explicitly asks for it or `.spwiki/config.json` has `auto_update_after_code_change: true`. When enabled, maintain the wiki only when all of these are true:
 
 - The code change is final and kept.
 - Validation is complete enough to report the change as done.
@@ -58,9 +57,9 @@ Do not update wiki for:
 Use this order to find affected pages:
 
 1. Run `plan_wiki_update.py` to produce candidate pages without reading the full wiki.
-2. Read `.wiki/wiki-index.json` and find pages whose `source_refs` include changed files.
+2. Read `.spwiki/wiki-index.json` and find pages whose `source_refs` include changed files.
 3. Search entity-level index fields (`routes`, `symbols`, `config_keys`, `risk_flags`, `tags`) before opening full pages.
-4. Search only candidate `.wiki/<language>/content/**/*.md` pages for changed paths, class/component names, route paths, API names, table/entity names, config keys, command names, and module names.
+4. Search only candidate `.spwiki/<language>/content/**/*.md` pages for changed paths, class/component names, route paths, API names, table/entity names, config keys, command names, and module names.
 5. Map change type to topics:
    - Controllers/routes/API wrappers -> `API接口文档` or `API接口层`
    - Entities/schemas/ORM mappings -> `数据库设计` or `数据模型设计`
@@ -69,13 +68,14 @@ Use this order to find affected pages:
    - Major services/components/views/stores -> `核心模块`, `页面视图组件`, `状态管理系统`, or stack-specific topics
 6. Update root overview pages if the change affects project-wide architecture, startup, build, deployment, or cross-subproject contracts.
 
-## Naming Rules
+## Naming and Language Rules
 
-- Use localized directory and page names from `.wiki/config.json` language.
-- Use `.wiki/<language>/content` for Markdown content, defaulting to `.wiki/zh/content`.
+- The wiki language is chosen at initialization: an explicit user choice, otherwise the detected system language. It is recorded in `.spwiki/config.json` and is authoritative from then on. All maintenance, new pages, and topic names must use that language; never mix or switch languages within one wiki.
+- Each language has its own content root: `.spwiki/<language>/content` (for example `.spwiki/zh/content`, `.spwiki/en/content`, `.spwiki/kr/content`). It defaults to `.spwiki/zh/content` only when config says `zh`.
+- Use localized directory and page names that match the configured language.
 - Keep a same-name index page in every topic directory, such as `架构设计/架构设计.md`.
-- Place `.wiki/wiki-index.json` at the `.wiki` root for each project.
-- Place `.wiki/config.json` at the `.wiki` root for each project.
+- Place `.spwiki/wiki-index.json` and `.spwiki/config.json` at the `.spwiki` root for each project.
+- Write all wiki files as UTF-8 so the configured language renders correctly. Never write through a legacy codepage that turns non-ASCII into `?`.
 
 ## Default Config
 
@@ -86,7 +86,6 @@ Use this order to find affected pages:
   "profile": "deep",
   "auto_update_after_code_change": false,
   "token_strategy": "prefilter_batch",
-  "ignore_qoder": true,
   "index_schema_version": 2,
   "strict_ready_required": true
 }
@@ -111,3 +110,4 @@ Use this order to find affected pages:
 - Template TODO text or placeholder prose remains.
 - The substantive body is too short to be useful.
 - Secret-like values appear in wiki text.
+- Mojibake appears in a page: runs of three or more `?` or the `�` replacement character, which signal the file was written through a non-UTF-8 codepage.

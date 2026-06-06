@@ -9,7 +9,7 @@ Apply these checks before considering a generated wiki complete.
 - Do not invent line numbers. Use line anchors only after inspecting the file.
 - Keep `<cite>` lists focused on files actually used by the document.
 - Prefer current source files over generated artifacts, dependency folders, or stale docs.
-- Every completed page should have a `<cite>` block and non-empty `source_refs` in `.wiki/wiki-index.json`.
+- Every completed page should have a `<cite>` block and non-empty `source_refs` in `.spwiki/wiki-index.json`.
 
 ## Truthfulness
 
@@ -32,18 +32,24 @@ Apply these checks before considering a generated wiki complete.
 - Deep module pages should explain responsibilities, data flow, dependencies, and modification risks.
 - Avoid empty template sections. If a section has no project evidence, either omit it or say the capability was not found.
 - Do not mark generated TODO placeholders as complete content.
-- Each project wiki should have `.wiki/wiki-index.json`, rebuilt after explicit wiki updates.
-- Each project wiki should have `.wiki/config.json` with `auto_update_after_code_change` defaulting to `false`.
-- Content should live under `.wiki/<language>/content`, controlled by `.wiki/config.json`.
-- Project-specific aliases, search hints, topic overrides, and risk rules should live in `.wiki/project-aliases.json`, `.wiki/search-hints.json`, `.wiki/topic-overrides.json`, and `.wiki/risk-profile.json`.
-- Ignore `.qoder/repowiki`; `.wiki` is maintained from current source code.
+- Each project wiki should have `.spwiki/wiki-index.json`, rebuilt after explicit wiki updates.
+- Each project wiki should have `.spwiki/config.json` with `auto_update_after_code_change` defaulting to `false`.
+- Content should live under `.spwiki/<language>/content`, controlled by `.spwiki/config.json`.
+- Project-specific aliases, search hints, topic overrides, and risk rules should live in `.spwiki/project-aliases.json`, `.spwiki/search-hints.json`, `.spwiki/topic-overrides.json`, and `.spwiki/risk-profile.json`.
+
+## Language and Encoding
+
+- The wiki language is fixed at initialization (explicit user choice, otherwise the detected system language) and recorded in `.spwiki/config.json`. All later content must use that language.
+- Keep each language in its own content root: `.spwiki/<language>/content` (`zh`, `en`, `kr`, ...).
+- Write every wiki file as UTF-8. The `???` mojibake comes from writing CJK/Korean/other non-ASCII text through a legacy console codepage; always save as UTF-8.
+- Strict readiness fails when a page contains mojibake (runs of three or more `?` or the `�` replacement character).
 
 ## Maintenance
 
-- During ordinary project work, use `.wiki` for orientation before verifying facts in source code.
-- Do not update wiki automatically after code changes unless `.wiki/config.json` explicitly enables it.
+- During ordinary project work, use `.spwiki` for orientation before verifying facts in source code.
+- Do not update wiki automatically after code changes unless `.spwiki/config.json` explicitly enables it.
 - For `$simple-project-wiki-update`, prefilter candidate pages before reading wiki content.
-- Use source sha256 changes from `.wiki/wiki-index.json` as the final skip/update criterion.
+- Use source sha256 changes from `.spwiki/wiki-index.json` as the final skip/update criterion.
 - Do not use mtime alone to skip a wiki page.
 - Use citation and topic mapping to find affected pages.
 - Create missing pages when new modules, APIs, configs, or workflows need durable documentation.
@@ -54,12 +60,13 @@ Apply these checks before considering a generated wiki complete.
 
 ## Review Checklist
 
-- The wiki exists at `.wiki/zh/content`.
-- Or the wiki exists at the configured `.wiki/<language>/content`.
-- The wiki config exists at `.wiki/config.json`.
-- The wiki index exists at `.wiki/wiki-index.json`.
+- The wiki exists at `.spwiki/zh/content`.
+- Or the wiki exists at the configured `.spwiki/<language>/content`.
+- The wiki config exists at `.spwiki/config.json`.
+- The wiki index exists at `.spwiki/wiki-index.json`.
 - Strict readiness passes; no TODO placeholder pages remain.
-- Strict readiness passes; no missing `<cite>`, empty `source_refs`, missing cited files, short pages, unindexed pages, or secret-like wiki content remains.
+- Strict readiness passes; no missing `<cite>`, empty `source_refs`, missing cited files, short pages, unindexed pages, secret-like wiki content, or `???`/`�` mojibake remains.
+- Every page is written in the language recorded in `.spwiki/config.json`, encoded as UTF-8.
 - The root project and every intended subproject have their own wiki.
 - `项目概述.md` names the stack, entrypoints, project structure, and major modules.
 - `快速开始.md` uses commands and requirements from actual manifests/docs.

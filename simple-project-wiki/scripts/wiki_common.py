@@ -5,6 +5,8 @@ from __future__ import annotations
 
 import hashlib
 import json
+import locale
+import os
 import re
 from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Sequence, Set
@@ -17,10 +19,71 @@ DEFAULT_CONFIG = {
     "profile": "deep",
     "auto_update_after_code_change": False,
     "token_strategy": "prefilter_batch",
-    "ignore_qoder": True,
     "index_schema_version": SCHEMA_VERSION,
     "strict_ready_required": True,
 }
+
+# Maps locale prefixes to the wiki language keys this skill recognizes.
+SYSTEM_LANGUAGE_MAP = {
+    "zh": "zh",
+    "en": "en",
+    "ko": "kr",
+    "kr": "kr",
+    "ja": "ja",
+    "jp": "ja",
+    "fr": "fr",
+    "de": "de",
+    "es": "es",
+    "pt": "pt",
+    "ru": "ru",
+    "it": "it",
+}
+FALLBACK_LANGUAGE = "en"
+
+
+def detect_system_language() -> str:
+    """Best-effort detect the OS language as a wiki language key.
+
+    Returns a key such as zh, en, kr, ja. Falls back to en when the locale
+    is unknown. The result is only a default; the user can override at init,
+    and once .spwiki/config.json records a language all maintenance must use it.
+    """
+    candidates: List[str] = []
+    for env_var in ("LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG"):
+        value = os.environ.get(env_var)
+        if value:
+            candidates.append(value)
+    try:
+        loc = locale.getlocale()[0]
+    except Exception:
+        loc = None
+    if loc:
+        candidates.append(loc)
+    try:
+        loc2 = locale.getdefaultlocale()[0]
+    except Exception:
+        loc2 = None
+    if loc2:
+        candidates.append(loc2)
+
+    for raw in candidates:
+        token = re.split(r"[._@:; ]", raw.strip().lower(), maxsplit=1)[0]
+        if not token:
+            continue
+        prefix = token.split("-")[0]
+        if token in SYSTEM_LANGUAGE_MAP:
+            return SYSTEM_LANGUAGE_MAP[token]
+        if prefix in SYSTEM_LANGUAGE_MAP:
+            return SYSTEM_LANGUAGE_MAP[prefix]
+        if "chinese" in token:
+            return "zh"
+        if "korean" in token:
+            return "kr"
+        if "japanese" in token:
+            return "ja"
+        if "english" in token:
+            return "en"
+    return FALLBACK_LANGUAGE
 
 LANGUAGE_PROFILES = {
     "zh": {
@@ -215,6 +278,35 @@ SECRET_RE = re.compile(
 )
 PRIVATE_KEY_RE = re.compile(r"-----BEGIN [A-Z ]*PRIVATE KEY-----")
 
+# Runs of three or more literal '?' or the Unicode replacement char signal that
+# non-ASCII text (CJK/Korean/etc.) was written through a non-UTF-8 stream and lost.
+MOJIBAKE_RE = re.compile(r"\?{3,}|�")
+
+
+def mojibake_hits(text: str) -> List[Dict[str, str]]:
+    hits: List[Dict[str, str]] = []
+    for index, line in enumerate(text.splitlines(), start=1):
+        match = MOJIBAKE_RE.search(line)
+        if match:
+            kind = "replacement-char" if "�" in match.group(0) else "question-run"
+            hits.append({"line": str(index), "kind": kind})
+    return hits
+
+
+def read_text_utf8(path: Path) -> str:
+    """Read a wiki file as UTF-8, tolerating a BOM. Wiki files are always UTF-8."""
+    return path.read_text(encoding="utf-8-sig")
+
+
+def write_text_utf8(path: Path, text: str) -> None:
+    """Write a wiki file as UTF-8 regardless of the host console codepage.
+
+    Writing through Path.write_text with an explicit encoding avoids the
+    Windows default codepage (cp936/cp1252) that turns CJK/Korean into '?'.
+    """
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(text, encoding="utf-8")
+
 
 def load_json_file(path: Path) -> Dict[str, object]:
     if not path.exists():
@@ -237,7 +329,7 @@ def write_json_file(path: Path, data: Dict[str, object], force: bool, created: L
 
 def load_config(project_root: Path) -> Dict[str, object]:
     config = dict(DEFAULT_CONFIG)
-    config.update(load_json_file(project_root / ".wiki" / "config.json"))
+    config.update(load_json_file(project_root / ".spwiki" / "config.json"))
     language = str(config.get("language") or "zh")
     config["language"] = language
     config.setdefault("content_root", f"{language}/content")
@@ -252,7 +344,7 @@ def content_root_rel(config: Dict[str, object]) -> str:
 
 def content_root_path(project_root: Path, config: Optional[Dict[str, object]] = None) -> Path:
     config = config or load_config(project_root)
-    return project_root / ".wiki" / content_root_rel(config)
+    return project_root / ".spwiki" / content_root_rel(config)
 
 
 def language_profile(language: str) -> Dict[str, object]:
@@ -309,7 +401,7 @@ def default_children(topic_key: str, profile: str, language: str) -> List[str]:
 
 
 def load_topic_overrides(project_root: Path) -> Dict[str, object]:
-    return load_json_file(project_root / ".wiki" / "topic-overrides.json")
+    return load_json_file(project_root / ".spwiki" / "topic-overrides.json")
 
 
 def topic_records(project: Dict[str, object], output_project_root: Path, profile: str, language: str) -> List[Dict[str, object]]:
@@ -381,7 +473,7 @@ def default_project_sidecar_files() -> Dict[str, object]:
 
 def load_search_hints(project_root: Path) -> Dict[str, object]:
     hints = dict(DEFAULT_SEARCH_HINTS)
-    raw = load_json_file(project_root / ".wiki" / "search-hints.json")
+    raw = load_json_file(project_root / ".spwiki" / "search-hints.json")
     for key, value in raw.items():
         if key == "config_key_prefixes" and isinstance(value, list):
             hints[key] = [str(item) for item in value]
@@ -395,7 +487,7 @@ def load_search_hints(project_root: Path) -> Dict[str, object]:
 
 
 def load_project_aliases(project_root: Path) -> Dict[str, List[str]]:
-    raw = load_json_file(project_root / ".wiki" / "project-aliases.json")
+    raw = load_json_file(project_root / ".spwiki" / "project-aliases.json")
     aliases = raw.get("aliases", raw)
     result: Dict[str, List[str]] = {}
     if not isinstance(aliases, dict):
@@ -443,7 +535,7 @@ def expand_query_terms(project_root: Path, query: str) -> List[str]:
 
 
 def load_risk_keywords(project_root: Path) -> Dict[str, List[str]]:
-    raw = load_json_file(project_root / ".wiki" / "risk-profile.json")
+    raw = load_json_file(project_root / ".spwiki" / "risk-profile.json")
     source = raw.get("risk_flags", raw.get("risks", raw))
     result = {key: list(values) for key, values in DEFAULT_RISK_KEYWORDS.items()}
     if isinstance(source, dict):

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Check whether a project .wiki is structurally and evidence ready."""
+"""Check whether a project .spwiki is structurally and evidence ready."""
 
 from __future__ import annotations
 
@@ -16,6 +16,7 @@ from wiki_common import (
     content_root_rel,
     filename_for_title,
     load_config,
+    mojibake_hits,
     root_docs,
     secret_hits,
     strip_markdown_noise,
@@ -28,7 +29,6 @@ SKIP_DIRS = {
     ".git",
     ".idea",
     ".vscode",
-    ".qoder",
     "node_modules",
     "target",
     "dist",
@@ -61,10 +61,10 @@ def required_root_files(project_root: Path, config: Dict[str, object]) -> List[s
     content_rel = content_root_rel(config)
     language = str(config["language"])
     files = [
-        ".wiki/config.json",
-        ".wiki/wiki-index.json",
+        ".spwiki/config.json",
+        ".spwiki/wiki-index.json",
     ]
-    files.extend(f".wiki/{content_rel}/{doc['filename']}" for doc in root_docs(language))
+    files.extend(f".spwiki/{content_rel}/{doc['filename']}" for doc in root_docs(language))
     return files
 
 
@@ -122,6 +122,15 @@ def secret_hit_records(project_root: Path, config: Dict[str, object]) -> List[Di
     return records
 
 
+def mojibake_hit_records(project_root: Path, config: Dict[str, object]) -> List[Dict[str, str]]:
+    records = []
+    for path in markdown_pages(project_root, config):
+        text = path.read_text(encoding="utf-8-sig", errors="replace")
+        for hit in mojibake_hits(text):
+            records.append({"path": rel(path, project_root), **hit})
+    return records
+
+
 def index_page_map(index: Dict[str, object]) -> Dict[str, Dict[str, object]]:
     pages = index.get("pages", [])
     if not isinstance(pages, list):
@@ -155,7 +164,7 @@ def pages_missing_source_refs(page_map: Dict[str, Dict[str, object]]) -> List[st
 
 
 def unindexed_markdown_pages(project_root: Path, config: Dict[str, object], page_map: Dict[str, Dict[str, object]]) -> List[str]:
-    wiki_root = project_root / ".wiki"
+    wiki_root = project_root / ".spwiki"
     indexed = set(page_map.keys())
     result = []
     for path in markdown_pages(project_root, config):
@@ -172,7 +181,6 @@ def config_valid(config: Dict[str, object]) -> bool:
         and config.get("profile") in {"light", "balanced", "deep"}
         and isinstance(config.get("auto_update_after_code_change"), bool)
         and config.get("token_strategy") == "prefilter_batch"
-        and isinstance(config.get("ignore_qoder"), bool)
     )
 
 
@@ -190,7 +198,7 @@ def check(project_root: Path, strict: bool = False) -> Dict[str, object]:
         else:
             missing.append(item)
 
-    index_path = project_root / ".wiki" / "wiki-index.json"
+    index_path = project_root / ".spwiki" / "wiki-index.json"
     index = load_json(index_path)
     expected_content_root = content_root_rel(config)
     page_map = index_page_map(index)
@@ -206,6 +214,7 @@ def check(project_root: Path, strict: bool = False) -> Dict[str, object]:
         "pages_without_cite": pages_without_cite(project_root, config) if strict else [],
         "short_content_pages": short_content_pages(project_root, config) if strict else [],
         "secret_hits": secret_hit_records(project_root, config) if strict else [],
+        "mojibake_hits": mojibake_hit_records(project_root, config) if strict else [],
         "unindexed_pages": unindexed_markdown_pages(project_root, config, page_map) if strict and index_valid else [],
         "pages_missing_source_refs": pages_missing_source_refs(page_map) if strict and index_valid else [],
         "missing_cited_refs": missing_cited_refs(page_map) if strict and index_valid else [],
@@ -228,6 +237,7 @@ def check(project_root: Path, strict: bool = False) -> Dict[str, object]:
         "pages_without_cite": strict_details["pages_without_cite"],
         "short_content_pages": strict_details["short_content_pages"],
         "secret_hits": strict_details["secret_hits"],
+        "mojibake_hits": strict_details["mojibake_hits"],
         "unindexed_pages": strict_details["unindexed_pages"],
         "pages_missing_source_refs": strict_details["pages_missing_source_refs"],
         "missing_cited_refs": strict_details["missing_cited_refs"],
@@ -237,13 +247,13 @@ def check(project_root: Path, strict: bool = False) -> Dict[str, object]:
 def iter_wiki_project_roots(project_root: Path) -> Iterable[Path]:
     yielded: Set[Path] = set()
     project_root = project_root.resolve()
-    if (project_root / ".wiki").exists():
+    if (project_root / ".spwiki").exists():
         yielded.add(project_root)
         yield project_root
     for current, dirnames, _ in os.walk(project_root):
         current_path = Path(current)
         dirnames[:] = [name for name in dirnames if name not in SKIP_DIRS]
-        if current_path.name == ".wiki":
+        if current_path.name == ".spwiki":
             root = current_path.parent.resolve()
             if root not in yielded:
                 yielded.add(root)
@@ -278,7 +288,7 @@ def print_not_ready(result: Dict[str, object]) -> None:
         print(f"index invalid or missing for {result['project_root']}")
     if not result.get("config_valid"):
         print(f"config invalid or missing for {result['project_root']}")
-    for key in ("placeholder_files", "pages_without_cite", "short_content_pages", "unindexed_pages", "pages_missing_source_refs", "missing_cited_refs", "secret_hits"):
+    for key in ("placeholder_files", "pages_without_cite", "short_content_pages", "unindexed_pages", "pages_missing_source_refs", "missing_cited_refs", "secret_hits", "mojibake_hits"):
         values = result.get(key) or []
         if values:
             print(f"{key} for {result['project_root']}:")
@@ -287,11 +297,11 @@ def print_not_ready(result: Dict[str, object]) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Check whether .wiki core files, index, and evidence are ready.")
+    parser = argparse.ArgumentParser(description="Check whether .spwiki core files, index, and evidence are ready.")
     parser.add_argument("project_root", help="Project root to check.")
     parser.add_argument("--json", action="store_true", help="Emit detailed JSON.")
     parser.add_argument("--strict", action="store_true", help="Fail on missing evidence, placeholders, short content, missing citations, or secret-like values.")
-    parser.add_argument("--recursive", action="store_true", help="Check every discovered .wiki under the project root.")
+    parser.add_argument("--recursive", action="store_true", help="Check every discovered .spwiki under the project root.")
     args = parser.parse_args()
 
     result = check_recursive(Path(args.project_root), strict=args.strict) if args.recursive else check(Path(args.project_root), strict=args.strict)

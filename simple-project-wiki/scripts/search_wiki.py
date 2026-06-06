@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Search .wiki/wiki-index.json files before reading full wiki pages."""
+"""Search .spwiki/wiki-index.json files before reading full wiki pages."""
 
 from __future__ import annotations
 
@@ -17,7 +17,6 @@ SKIP_DIRS = {
     ".git",
     ".idea",
     ".vscode",
-    ".qoder",
     "node_modules",
     "target",
     "dist",
@@ -42,7 +41,7 @@ def load_json(path: Path) -> Dict[str, object]:
 
 def iter_wiki_indexes(project_root: Path, root_only: bool = False) -> Iterable[Path]:
     yielded = set()
-    root_index = project_root / ".wiki" / "wiki-index.json"
+    root_index = project_root / ".spwiki" / "wiki-index.json"
     if root_index.exists():
         yielded.add(root_index.resolve())
         yield root_index
@@ -54,7 +53,7 @@ def iter_wiki_indexes(project_root: Path, root_only: bool = False) -> Iterable[P
         dirnames[:] = [name for name in dirnames if name not in SKIP_DIRS]
         if current_path == project_root:
             continue
-        if current_path.name == ".wiki" and "wiki-index.json" in filenames:
+        if current_path.name == ".spwiki" and "wiki-index.json" in filenames:
             index_path = current_path / "wiki-index.json"
             resolved = index_path.resolve()
             if resolved not in yielded:
@@ -243,11 +242,11 @@ def print_text(result: Dict[str, object]) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Search .wiki/wiki-index.json files.")
+    parser = argparse.ArgumentParser(description="Search .spwiki/wiki-index.json files.")
     parser.add_argument("project_root", help="Project root to search.")
     parser.add_argument("query", nargs="*", help="Search text, route, path, symbol, config key, or risk topic.")
     parser.add_argument("--limit", type=int, default=10, help="Maximum hits to emit. Use 0 for no limit.")
-    parser.add_argument("--root-only", action="store_true", help="Only search the root .wiki index.")
+    parser.add_argument("--root-only", action="store_true", help="Only search the root .spwiki index.")
     parser.add_argument("--json", action="store_true", help="Emit JSON instead of text.")
     args = parser.parse_args()
 

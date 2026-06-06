@@ -1,6 +1,6 @@
 # Post-Build Usage Guide
 
-Use this reference after `.wiki` has been initialized and filled with source-grounded content.
+Use this reference after `.spwiki` has been initialized and filled with source-grounded content.
 
 ## Daily Development Protocol
 
@@ -41,7 +41,7 @@ python <skill-dir>/scripts/check_wiki_ready.py <project-root> --json --strict --
 
 ## Query Routing
 
-- Architecture questions: read root `.wiki/wiki-index.json`, then `架构设计` pages.
+- Architecture questions: read root `.spwiki/wiki-index.json`, then `架构设计` pages.
 - API questions: search for route, controller, API wrapper, request DTO, or response DTO.
 - Data questions: search entity, mapper, XML namespace, table, migration, or model name.
 - Config questions: search config key, profile, port, endpoint, package command, or manifest.
@@ -82,5 +82,5 @@ Use this in `AGENTS.md` or `CLAUDE.md` after the wiki exists:
 ```markdown
 ## Project Wiki Usage
 
-Before broad project search, inspect `.wiki/wiki-index.json` at the root and relevant subprojects. Use search results and heading line ranges to open the smallest relevant wiki content. Use wiki pages only to navigate; verify implementation facts in current source code. If wiki and source disagree, trust source and treat the wiki as stale. Do not update `.wiki` unless explicitly requested or `auto_update_after_code_change` is enabled.
+Before broad project search, inspect `.spwiki/wiki-index.json` at the root and relevant subprojects. Use search results and heading line ranges to open the smallest relevant wiki content. Use wiki pages only to navigate; verify implementation facts in current source code. If wiki and source disagree, trust source and treat the wiki as stale. Do not update `.spwiki` unless explicitly requested or `auto_update_after_code_change` is enabled.
 ```

@@ -48,7 +48,7 @@ Add only a small always-on rule to `CLAUDE.md`; keep detailed procedures in the 
 ```markdown
 ## Project Wiki Usage
 
-When querying, searching, locating, or analyzing this project, prefer the `simple-project-wiki` skills or equivalent project-wiki workflow first. Use `.wiki` as the initial navigation source, then verify implementation facts against current source code. For initialization or refresh, follow the skill's agent operation manual and do not accept TODO-only pages as complete.
+When querying, searching, locating, or analyzing this project, prefer the `simple-project-wiki` skills or equivalent project-wiki workflow first. Use `.spwiki` as the initial navigation source, then verify implementation facts against current source code. For initialization or refresh, follow the skill's agent operation manual and do not accept TODO-only pages as complete.
 ```
 
 ## Low-Compliance Agent Setup
@@ -69,7 +69,7 @@ For search tasks:
 
 ```text
 Use /simple-project-wiki-search.
-First run search_wiki.py or read .wiki/wiki-index.json.
+First run search_wiki.py or read .spwiki/wiki-index.json.
 Then open only the most relevant wiki pages.
 Then verify every implementation fact in source code before answering.
 ```
@@ -83,7 +83,7 @@ python ${CLAUDE_SKILL_DIR}/../simple-project-wiki/scripts/check_wiki_ready.py <p
 
 ## Side-Effect Rules
 
-- Init and update skills write `.wiki`; invoke them only when the user explicitly asks.
+- Init and update skills write `.spwiki`; invoke them only when the user explicitly asks.
 - Search is read-only and should be the default workflow during ordinary development.
 - If creating a Claude-only copy and Claude Code supports side-effect metadata, mark init/update as manual-invocation skills such as `disable-model-invocation: true`. Do not add Claude-only frontmatter to the shared package unless the package is no longer intended to be Codex-compatible.
 

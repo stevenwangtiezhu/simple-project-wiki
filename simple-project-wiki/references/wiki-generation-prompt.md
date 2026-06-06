@@ -1,19 +1,19 @@
 # Wiki Generation Prompt
 
-Use this prompt when asking an AI agent to generate a Qoder/RepoWiki-style project knowledge base.
+Use this prompt when asking an AI agent to generate a RepoWiki-style project knowledge base.
 
 ```text
-你是一个资深软件架构文档工程师。请使用 simple-project-wiki 规则，为给定代码仓库生成一套可作为 AI 知识库使用的 `.wiki/zh/content` 中文 Markdown 文档。
+你是一个资深软件架构文档工程师。请使用 simple-project-wiki 规则，为给定代码仓库生成一套可作为 AI 知识库使用的 `.spwiki/zh/content` 中文 Markdown 文档。
 
 目标：
 - 生成基于真实代码事实的项目 wiki，而不是通用框架介绍。
-- 对单项目生成一个 `.wiki/zh/content`。
-- 对 monorepo 先生成主项目总览 wiki，再为每个子项目分别生成自己的 `.wiki/zh/content`。
-- 每个项目维护 `.wiki/wiki-index.json`，用于智能体后续搜索、定位和精准增量维护。
-- `.wiki/wiki-index.json` 应记录引用源码文件的 sha256，并生成 routes、symbols、config keys、risk flags、heading 行号等轻量检索字段；更新时以 sha256 是否变化和实体级命中作为跳过页面的依据。
-- 每个项目维护 `.wiki/config.json`，默认关闭代码修改后的自动更新。
-- 项目特定的领域词、主题、查询提示和风险规则放在 `.wiki/project-aliases.json`、`.wiki/topic-overrides.json`、`.wiki/search-hints.json`、`.wiki/risk-profile.json`，不要写死进技能本体。
-- 文档结构尽量接近 Qoder/RepoWiki：根级总览页、专题目录、同名索引页、复杂模块继续下钻。
+- 对单项目生成一个 `.spwiki/zh/content`。
+- 对 monorepo 先生成主项目总览 wiki，再为每个子项目分别生成自己的 `.spwiki/zh/content`。
+- 每个项目维护 `.spwiki/wiki-index.json`，用于智能体后续搜索、定位和精准增量维护。
+- `.spwiki/wiki-index.json` 应记录引用源码文件的 sha256，并生成 routes、symbols、config keys、risk flags、heading 行号等轻量检索字段；更新时以 sha256 是否变化和实体级命中作为跳过页面的依据。
+- 每个项目维护 `.spwiki/config.json`，默认关闭代码修改后的自动更新。
+- 项目特定的领域词、主题、查询提示和风险规则放在 `.spwiki/project-aliases.json`、`.spwiki/topic-overrides.json`、`.spwiki/search-hints.json`、`.spwiki/risk-profile.json`，不要写死进技能本体。
+- 文档结构尽量接近 RepoWiki：根级总览页、专题目录、同名索引页、复杂模块继续下钻。
 - 生成完成后必须通过严格检查；保留模板 TODO 的页面只能报告为未完成，不能标记为完成。
 
 必须先做的事：
@@ -21,14 +21,13 @@ Use this prompt when asking an AI agent to generate a Qoder/RepoWiki-style proje
 2. 识别项目类型和技术栈，例如 Java/Spring、Node/Vue/React、uni-app、Electron、Go、Rust、Python、移动端、库项目等。
 3. 识别子项目：每个带独立 manifest 或独立源码/构建体系的目录都应视为候选子项目。
 4. 为每个项目列出关键源码文件，并用这些文件作为文档事实来源。
-5. 忽略 `.qoder/repowiki`，不要迁移、复制或依赖其中内容。
 6. 对低遵循智能体，按 `agent-operation-manual.md` 的批次检查节奏执行，每 3-5 页自查一次引用、TODO、敏感信息和索引状态。
 
 输出路径：
-- 默认输出到 `<项目根>/.wiki/zh/content`，或 `.wiki/config.json` 指定的 `<language>/content`。
-- 每个子项目输出到 `<子项目根>/.wiki/<language>/content`。
-- 索引输出到 `<项目根>/.wiki/wiki-index.json`。
-- 配置输出到 `<项目根>/.wiki/config.json`。
+- 默认输出到 `<项目根>/.spwiki/zh/content`，或 `.spwiki/config.json` 指定的 `<language>/content`。
+- 每个子项目输出到 `<子项目根>/.spwiki/<language>/content`。
+- 索引输出到 `<项目根>/.spwiki/wiki-index.json`。
+- 配置输出到 `<项目根>/.spwiki/config.json`。
 
 推荐目录：
 - 根级：`项目概述.md`、`快速开始.md`、`故障排除指南.md`。
@@ -79,5 +78,5 @@ Use this prompt when asking an AI agent to generate a Qoder/RepoWiki-style proje
 ## Minimal Invocation
 
 ```text
-使用 simple-project-wiki 的规则，为当前仓库生成 `.wiki/zh/content` 中文知识库。先扫描项目和子项目，创建 Qoder 风格目录，再逐篇基于真实代码补全文档并附来源引用。
+使用 simple-project-wiki 的规则，为当前仓库生成 `.spwiki/zh/content` 中文知识库。先扫描项目和子项目，创建 RepoWiki 风格目录，再逐篇基于真实代码补全文档并附来源引用。
 ```

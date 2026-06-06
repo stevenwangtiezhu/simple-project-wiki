@@ -8,7 +8,7 @@ import json
 import os
 import re
 from pathlib import Path
-from typing import Dict, Iterable, List
+from typing import Dict, Iterable, List, Optional
 
 
 MANIFESTS = {
@@ -81,8 +81,7 @@ SKIP_DIRS = {
     ".git",
     ".idea",
     ".vscode",
-    ".wiki",
-    ".qoder",
+    ".spwiki",
     "node_modules",
     "target",
     "dist",
@@ -144,6 +143,117 @@ def rel(path: Path, root: Path) -> str:
     return path.resolve().relative_to(root.resolve()).as_posix()
 
 
+def _gitignore_pattern_to_regex(pattern: str) -> str:
+    """Translate one gitignore glob body into a regex matched against a posix relative path."""
+    i = 0
+    n = len(pattern)
+    out = ""
+    while i < n:
+        ch = pattern[i]
+        if ch == "*":
+            if pattern[i : i + 2] == "**":
+                # '**/' matches zero or more leading dirs; bare '**' matches anything.
+                if pattern[i : i + 3] == "**/":
+                    out += "(?:.*/)?"
+                    i += 3
+                    continue
+                out += ".*"
+                i += 2
+                continue
+            out += "[^/]*"
+        elif ch == "?":
+            out += "[^/]"
+        else:
+            out += re.escape(ch)
+        i += 1
+    return out
+
+
+class GitignoreMatcher:
+    """Pragmatic .gitignore evaluator.
+
+    Loads .gitignore files lazily per directory (git semantics: a file applies
+    to its own directory and descendants). Supports comments, blank lines,
+    negation (!), directory-only (trailing /), anchoring (leading /), and the
+    *, ?, ** globs. Last matching rule wins. Not a full git implementation, but
+    covers the common cases used to keep generated artifacts out of scans.
+    """
+
+    def __init__(self, root: Path) -> None:
+        self.root = root.resolve()
+        self._rules_by_dir: Dict[Path, List[tuple]] = {}
+
+    def _load_dir(self, directory: Path) -> List[tuple]:
+        directory = directory.resolve()
+        if directory in self._rules_by_dir:
+            return self._rules_by_dir[directory]
+        rules: List[tuple] = []
+        gitignore = directory / ".gitignore"
+        if gitignore.is_file():
+            try:
+                lines = gitignore.read_text(encoding="utf-8-sig", errors="ignore").splitlines()
+            except Exception:
+                lines = []
+            for raw in lines:
+                line = raw.rstrip("\r\n")
+                if not line.strip() or line.lstrip().startswith("#"):
+                    continue
+                line = line.rstrip()
+                negated = line.startswith("!")
+                if negated:
+                    line = line[1:]
+                if line.startswith("\\#") or line.startswith("\\!"):
+                    line = line[1:]
+                dir_only = line.endswith("/")
+                if dir_only:
+                    line = line[:-1]
+                anchored = "/" in line and not line.startswith("/") or line.startswith("/")
+                body = line[1:] if line.startswith("/") else line
+                if not body:
+                    continue
+                regex_body = _gitignore_pattern_to_regex(body)
+                if anchored:
+                    regex = re.compile(r"^" + regex_body + r"(?:/.*)?$")
+                else:
+                    regex = re.compile(r"(?:^|.*/)" + regex_body + r"(?:/.*)?$")
+                rules.append((regex, negated, dir_only))
+        self._rules_by_dir[directory] = rules
+        return rules
+
+    def is_ignored(self, path: Path, is_dir: bool) -> bool:
+        path = path.resolve()
+        try:
+            path.relative_to(self.root)
+        except ValueError:
+            return False
+        ignored = False
+        # Walk from root down to the path's parent; each directory's .gitignore
+        # is evaluated against the path expressed relative to that directory.
+        chain: List[Path] = []
+        cursor = path.parent
+        while True:
+            chain.append(cursor)
+            if cursor == self.root:
+                break
+            if cursor.parent == cursor:
+                break
+            cursor = cursor.parent
+        for base in reversed(chain):
+            rules = self._load_dir(base)
+            if not rules:
+                continue
+            try:
+                rel_to_base = path.relative_to(base).as_posix()
+            except ValueError:
+                continue
+            for regex, negated, dir_only in rules:
+                if dir_only and not is_dir:
+                    continue
+                if regex.match(rel_to_base):
+                    ignored = not negated
+        return ignored
+
+
 def should_skip_dir(path: Path, include_hidden: bool) -> bool:
     name = path.name
     if name in SKIP_DIRS:
@@ -153,7 +263,7 @@ def should_skip_dir(path: Path, include_hidden: bool) -> bool:
     return False
 
 
-def iter_dirs(root: Path, max_depth: int, include_hidden: bool) -> Iterable[Path]:
+def iter_dirs(root: Path, max_depth: int, include_hidden: bool, gitignore: Optional["GitignoreMatcher"]) -> Iterable[Path]:
     root = root.resolve()
     for current, dirnames, _ in os.walk(root):
         current_path = Path(current)
@@ -162,6 +272,7 @@ def iter_dirs(root: Path, max_depth: int, include_hidden: bool) -> Iterable[Path
             name
             for name in dirnames
             if not should_skip_dir(current_path / name, include_hidden)
+            and not (gitignore and gitignore.is_ignored(current_path / name, is_dir=True))
         ]
         if depth > max_depth:
             dirnames[:] = []
@@ -313,7 +424,12 @@ def detect_stack(project_path: Path, manifests: Dict[str, str]) -> List[str]:
     return sorted(stack)
 
 
-def iter_source_files(project_path: Path, patterns: Iterable[str], max_files: int = 200) -> Iterable[Path]:
+def iter_source_files(
+    project_path: Path,
+    patterns: Iterable[str],
+    max_files: int = 200,
+    gitignore: Optional["GitignoreMatcher"] = None,
+) -> Iterable[Path]:
     yielded = 0
     roots = [
         child
@@ -332,6 +448,8 @@ def iter_source_files(project_path: Path, patterns: Iterable[str], max_files: in
                     return
                 if any(part in SKIP_DIRS for part in path.parts):
                     continue
+                if gitignore and gitignore.is_ignored(path, is_dir=False):
+                    continue
                 if path.is_file():
                     yielded += 1
                     yield path
@@ -340,7 +458,7 @@ def iter_source_files(project_path: Path, patterns: Iterable[str], max_files: in
                 return
 
 
-def detect_dynamic_entrypoints(project_path: Path) -> List[str]:
+def detect_dynamic_entrypoints(project_path: Path, gitignore: Optional["GitignoreMatcher"] = None) -> List[str]:
     entries: List[str] = []
     probes = [
         ("*.java", re.compile(r"@SpringBootApplication|public\s+static\s+void\s+main\s*\(")),
@@ -351,7 +469,7 @@ def detect_dynamic_entrypoints(project_path: Path) -> List[str]:
         ("*.rb", re.compile(r"Rails\.application|Sinatra::Base|run\s+")),
     ]
     for pattern, regex in probes:
-        for path in iter_source_files(project_path, [pattern]):
+        for path in iter_source_files(project_path, [pattern], gitignore=gitignore):
             try:
                 text = path.read_text(encoding="utf-8", errors="ignore")
             except Exception:
@@ -398,14 +516,13 @@ def find_binary_dirs(project_path: Path) -> List[str]:
 
 def existing_wikis(project_path: Path) -> Dict[str, bool]:
     return {
-        ".wiki": (project_path / ".wiki").exists(),
-        ".qoder/repowiki": (project_path / ".qoder" / "repowiki").exists(),
+        ".spwiki": (project_path / ".spwiki").exists(),
     }
 
 
-def project_info(path: Path, root: Path) -> Dict[str, object]:
+def project_info(path: Path, root: Path, gitignore: Optional["GitignoreMatcher"] = None) -> Dict[str, object]:
     manifests = detect_manifests(path)
-    entrypoints = sorted(set(find_files(path, ENTRY_CANDIDATES) + detect_dynamic_entrypoints(path)))
+    entrypoints = sorted(set(find_files(path, ENTRY_CANDIDATES) + detect_dynamic_entrypoints(path, gitignore)))
     return {
         "name": path.name,
         "path": str(path.resolve()),
@@ -471,13 +588,15 @@ def filter_project_paths(project_paths: Iterable[Path], root: Path, include_nest
     return accepted
 
 
-def scan(root: Path, max_depth: int, include_hidden: bool, include_nested_projects: bool) -> Dict[str, object]:
+def scan(root: Path, max_depth: int, include_hidden: bool, include_nested_projects: bool, respect_gitignore: bool = True) -> Dict[str, object]:
     root = root.resolve()
     if not root.exists() or not root.is_dir():
         raise SystemExit(f"Project root does not exist or is not a directory: {root}")
 
+    gitignore = GitignoreMatcher(root) if respect_gitignore else None
+
     project_paths = {root}
-    for directory in iter_dirs(root, max_depth=max_depth, include_hidden=include_hidden):
+    for directory in iter_dirs(root, max_depth=max_depth, include_hidden=include_hidden, gitignore=gitignore):
         if directory == root:
             continue
         manifests = detect_manifests(directory)
@@ -485,11 +604,12 @@ def scan(root: Path, max_depth: int, include_hidden: bool, include_nested_projec
             project_paths.add(directory)
 
     filtered_paths = filter_project_paths(project_paths, root, include_nested_projects)
-    projects = [project_info(path, root) for path in filtered_paths]
+    projects = [project_info(path, root, gitignore) for path in filtered_paths]
     return {
         "schema_version": 1,
         "root": str(root),
         "generated_by": "simple-project-wiki/scripts/scan_project.py",
+        "respect_gitignore": respect_gitignore,
         "projects": projects,
     }
 
@@ -501,9 +621,16 @@ def main() -> int:
     parser.add_argument("--max-depth", type=int, default=3, help="Maximum directory depth for subproject detection.")
     parser.add_argument("--include-hidden", action="store_true", help="Scan hidden directories except known skip folders.")
     parser.add_argument("--include-nested-projects", action="store_true", help="Include manifest-bearing projects nested inside already detected projects.")
+    parser.add_argument("--no-gitignore", action="store_true", help="Do not honor .gitignore rules while scanning. By default, .gitignore rules in the root and subprojects are respected.")
     args = parser.parse_args()
 
-    data = scan(Path(args.project_root), args.max_depth, args.include_hidden, args.include_nested_projects)
+    data = scan(
+        Path(args.project_root),
+        args.max_depth,
+        args.include_hidden,
+        args.include_nested_projects,
+        respect_gitignore=not args.no_gitignore,
+    )
     text = json.dumps(data, ensure_ascii=False, indent=2)
     if args.output:
         output = Path(args.output)

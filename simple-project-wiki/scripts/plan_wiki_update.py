@@ -180,7 +180,7 @@ def score_page(page: Dict[str, object], changed_files: List[str], hints: Set[str
 
 def plan(project_root: Path, changed_files: List[str], limit: int) -> Dict[str, object]:
     project_root = project_root.resolve()
-    wiki_root = project_root / ".wiki"
+    wiki_root = project_root / ".spwiki"
     config = load_config(project_root)
     index = load_json(wiki_root / "wiki-index.json")
     pages = index.get("pages", []) if isinstance(index.get("pages"), list) else []
@@ -254,7 +254,7 @@ def plan(project_root: Path, changed_files: List[str], limit: int) -> Dict[str, 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Plan low-token candidate wiki pages for simple-project-wiki-update.")
-    parser.add_argument("project_root", help="Project root containing .wiki.")
+    parser.add_argument("project_root", help="Project root containing .spwiki.")
     parser.add_argument("--changed-file", action="append", default=[], help="Changed source file path. Repeat as needed.")
     parser.add_argument("--limit", type=int, default=30, help="Maximum candidate pages to emit. Use 0 for no limit.")
     args = parser.parse_args()

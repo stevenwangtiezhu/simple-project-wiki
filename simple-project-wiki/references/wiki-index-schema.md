@@ -1,14 +1,14 @@
 # Wiki Index Schema
 
-`.wiki/wiki-index.json` is a machine-readable helper for searching and updating wiki pages. It is generated from Markdown content and should be rebuilt after `$simple-project-wiki-init`, `$simple-project-wiki-update`, or any explicit wiki update.
+`.spwiki/wiki-index.json` is a machine-readable helper for searching and updating wiki pages. It is generated from Markdown content and should be rebuilt after `$simple-project-wiki-init`, `$simple-project-wiki-update`, or any explicit wiki update.
 
 ## Location
 
 Each project has its own index:
 
 ```text
-project/.wiki/wiki-index.json
-project/.wiki/<language>/content/**/*.md
+project/.spwiki/wiki-index.json
+project/.spwiki/<language>/content/**/*.md
 ```
 
 For monorepos, the root project and each subproject maintain separate indexes.
@@ -36,7 +36,7 @@ Readers should still tolerate schema version 1 indexes, but new indexes should b
 
 Each `pages[]` item contains:
 
-- `path`: Markdown path relative to `.wiki`, such as `zh/content/架构设计/架构设计.md`.
+- `path`: Markdown path relative to `.spwiki`, such as `zh/content/架构设计/架构设计.md`.
 - `title`: First `#` heading, or file stem if missing.
 - `topic`: First directory under `zh/content`, or `root` for root-level pages.
 - `summary`: Short text from the first meaningful paragraph after `<cite>` and the table of contents.
@@ -60,9 +60,9 @@ Each `pages[]` item contains:
 
 Project-specific lookup fields can be influenced by sidecar config:
 
-- `.wiki/project-aliases.json`: domain aliases and synonyms used by search.
-- `.wiki/search-hints.json`: synonyms, topic hints, and config-key prefixes.
-- `.wiki/risk-profile.json`: project-specific risk flags and keywords.
+- `.spwiki/project-aliases.json`: domain aliases and synonyms used by search.
+- `.spwiki/search-hints.json`: synonyms, topic hints, and config-key prefixes.
+- `.spwiki/risk-profile.json`: project-specific risk flags and keywords.
 
 ## Search Strategy
 

@@ -1,4 +1,4 @@
 interface:
   display_name: "Search Project Wiki"
-  short_description: "Search .wiki indexes before source verification"
+  short_description: "Search .spwiki indexes before source verification"
   default_prompt: "Use $simple-project-wiki-search to search wiki indexes with search_wiki.py, use heading hits to open minimal wiki content, then verify facts in source code."

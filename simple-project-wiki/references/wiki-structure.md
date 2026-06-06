@@ -1,13 +1,13 @@
 # Wiki Structure
 
-Use this file to choose a `.wiki/<language>/content` structure after scanning the project. The default language is `zh`; `en` is also supported by the scripts. Custom project topics belong in `.wiki/topic-overrides.json`, not in the skill source.
+Use this file to choose a `.spwiki/<language>/content` structure after scanning the project. The default language is `zh`; `en` is also supported by the scripts. Custom project topics belong in `.spwiki/topic-overrides.json`, not in the skill source.
 
 ## Universal Shape
 
 Every project wiki should start with:
 
 ```text
-.wiki/
+.spwiki/
 └── zh/
     └── content/
         ├── 项目概述.md
@@ -28,7 +28,7 @@ Every project wiki should start with:
 For English wikis the same logical shape is localized, for example:
 
 ```text
-.wiki/
+.spwiki/
 └── en/
     └── content/
         ├── Project Overview.md
@@ -46,7 +46,7 @@ Use same-name index pages for every topic directory. For example, `核心模块/
 
 - `light`: root pages plus 4-6 topic directories. Best for small libraries or fast onboarding.
 - `balanced`: root pages plus 7-10 topic directories and a few key module pages.
-- `deep`: Qoder-like depth with topic directories, same-name index pages, and subdirectories for major modules. This is the default for large projects and monorepos.
+- `deep`: RepoWiki-like depth with topic directories, same-name index pages, and subdirectories for major modules. This is the default for large projects and monorepos.
 - `deep` also creates index/matrix pages such as API route, auth, configuration, data model, risk, subproject dependency, and third-party service indexes when useful.
 
 ## Java / Spring Backend
@@ -145,7 +145,7 @@ Focus on public API, examples, extension points, compatibility, and tests.
 
 ## Project Overrides
 
-When a project needs domain-specific topics, create `.wiki/topic-overrides.json`:
+When a project needs domain-specific topics, create `.spwiki/topic-overrides.json`:
 
 ```json
 {
@@ -171,9 +171,9 @@ For monorepos:
 Example:
 
 ```text
-repo/.wiki/zh/content/项目概述.md
-repo/backend/.wiki/zh/content/项目概述.md
-repo/admin/.wiki/zh/content/项目概述.md
-repo/web/.wiki/zh/content/项目概述.md
-repo/mobile/.wiki/zh/content/项目概述.md
+repo/.spwiki/zh/content/项目概述.md
+repo/backend/.spwiki/zh/content/项目概述.md
+repo/admin/.spwiki/zh/content/项目概述.md
+repo/web/.spwiki/zh/content/项目概述.md
+repo/mobile/.spwiki/zh/content/项目概述.md
 ```

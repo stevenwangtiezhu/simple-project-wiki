@@ -1,6 +1,6 @@
 ---
 name: simple-project-wiki-search
-description: Search and use existing `.wiki` project knowledge bases before source-code verification. Use for project queries, locating files/modules/APIs/configs, understanding architecture, analyzing code impact, or starting code modifications when `.wiki` may exist.
+description: Search and use existing `.spwiki` project knowledge bases before source-code verification. Use for project queries, locating files/modules/APIs/configs, understanding architecture, analyzing code impact, or starting code modifications when `.spwiki` may exist.
 ---
 
 # Simple Project Wiki Search
@@ -18,21 +18,20 @@ Shared resources are in `../simple-project-wiki`:
 
 ## Workflow
 
-1. Before broad repository grep, check for `.wiki/wiki-index.json` and the configured `.wiki/<language>/content` at the project root.
+1. Before broad repository grep, check for `.spwiki/wiki-index.json` and the configured `.spwiki/<language>/content` at the project root.
 2. If the repository is a monorepo, also check likely subproject roots.
 3. Run `python ../simple-project-wiki/scripts/search_wiki.py <project-root> "<query>" --json` when the user provides a keyword, route, path, symbol, config key, or risk topic.
-4. Search `.wiki/wiki-index.json` first for titles, topics, summaries, heading line ranges, `source_refs`, aliases, tags, routes, API endpoints, symbols, config keys, and risk flags.
-5. Open only the most relevant `.wiki/<language>/content/**/*.md` pages or `heading_hits` ranges.
+4. Search `.spwiki/wiki-index.json` first for titles, topics, summaries, heading line ranges, `source_refs`, aliases, tags, routes, API endpoints, symbols, config keys, and risk flags.
+5. Open only the most relevant `.spwiki/<language>/content/**/*.md` pages or `heading_hits` ranges.
 6. Use wiki results to identify likely source files, modules, routes, configs, entities, commands, risks, or dependencies.
 7. Verify all implementation facts in current source code before answering, editing, or making claims.
 8. If wiki and source disagree, source code wins.
-9. Ignore `.qoder/repowiki`; do not rely on it.
 
 For lower-compliance agents, read `../simple-project-wiki/references/agent-operation-manual.md` and follow the Search Workflow section.
 
 ## Missing Wiki
 
-If `.wiki` does not exist during ordinary project work:
+If `.spwiki` does not exist during ordinary project work:
 
 - Do not initialize automatically.
 - Tell the user they can use `$simple-project-wiki-init` to initialize a project knowledge base.
@@ -41,7 +40,7 @@ If `.wiki` does not exist during ordinary project work:
 ## Code Changes
 
 - Do not update wiki after code changes by default.
-- If the user asks to maintain wiki, or `.wiki/config.json` has `auto_update_after_code_change: true`, use `$simple-project-wiki-update` rules.
+- If the user asks to maintain wiki, or `.spwiki/config.json` has `auto_update_after_code_change: true`, use `$simple-project-wiki-update` rules.
 - Use wiki pages only as orientation; never skip source verification.
 
 ## Required Final Template

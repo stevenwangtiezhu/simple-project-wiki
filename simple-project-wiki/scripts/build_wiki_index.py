@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build .wiki/wiki-index.json from wiki Markdown files."""
+"""Build .spwiki/wiki-index.json from wiki Markdown files."""
 
 from __future__ import annotations
 
@@ -305,7 +305,7 @@ def build_index(project_root: Path, language: Optional[str] = None) -> Dict[str,
     if language:
         config["language"] = language
         config["content_root"] = f"{language}/content"
-    wiki_root = project_root / ".wiki"
+    wiki_root = project_root / ".spwiki"
     content_root = content_root_path(project_root, config)
     if not content_root.exists():
         raise SystemExit(f"Wiki content root not found: {content_root}")
@@ -328,15 +328,15 @@ def build_index(project_root: Path, language: Optional[str] = None) -> Dict[str,
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build .wiki/wiki-index.json from wiki Markdown.")
-    parser.add_argument("project_root", help="Project root containing .wiki.")
-    parser.add_argument("--language", help="Override wiki language folder. Defaults to .wiki/config.json language.")
-    parser.add_argument("--output", help="Optional output file. Default: <project-root>/.wiki/wiki-index.json.")
+    parser = argparse.ArgumentParser(description="Build .spwiki/wiki-index.json from wiki Markdown.")
+    parser.add_argument("project_root", help="Project root containing .spwiki.")
+    parser.add_argument("--language", help="Override wiki language folder. Defaults to .spwiki/config.json language.")
+    parser.add_argument("--output", help="Optional output file. Default: <project-root>/.spwiki/wiki-index.json.")
     args = parser.parse_args()
 
     project_root = Path(args.project_root)
     index = build_index(project_root, args.language)
-    output = Path(args.output) if args.output else project_root.resolve() / ".wiki" / "wiki-index.json"
+    output = Path(args.output) if args.output else project_root.resolve() / ".spwiki" / "wiki-index.json"
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(json.dumps(index, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(json.dumps({
