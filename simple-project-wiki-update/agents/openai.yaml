@@ -1,0 +1,4 @@
+interface:
+  display_name: "Update Project Wiki"
+  short_description: "Refresh .wiki with sha256 prefiltering"
+  default_prompt: "Use $simple-project-wiki-update to plan wiki updates from changed files and project hints, refresh affected pages from source, rebuild the index, and run strict recursive readiness checks."

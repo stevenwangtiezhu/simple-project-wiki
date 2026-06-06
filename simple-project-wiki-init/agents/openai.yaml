@@ -1,0 +1,4 @@
+interface:
+  display_name: "Init Project Wiki"
+  short_description: "Initialize strict code-grounded .wiki knowledge bases"
+  default_prompt: "Use $simple-project-wiki-init to initialize a code-grounded .wiki knowledge base, create sidecar config files, fill pages from source, rebuild the index, and run strict recursive readiness checks."
