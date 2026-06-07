@@ -48,7 +48,6 @@ Each `pages[]` item contains:
 - `config_keys`: Dotted config keys detected in text.
 - `risk_flags`: Risk labels such as `auth`, `payment`, `file-io`, `sql`, `deserialization`, `secrets`, or `admin`.
 - `source_refs`: Source paths parsed from `<cite>` links and `file://...` links.
-- `source_spans`: Source refs plus optional line anchors when present in links.
 - `source_fingerprints`: Current metadata for each source ref at index-build time:
   - `path`: normalized source path.
   - `exists`: whether the source file existed.

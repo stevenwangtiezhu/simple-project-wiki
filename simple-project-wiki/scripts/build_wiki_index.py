@@ -97,33 +97,6 @@ def source_refs_for(text: str) -> List[str]:
     return sorted(refs)
 
 
-def parse_line_anchor(anchor: str) -> Dict[str, Optional[int]]:
-    start = None
-    end = None
-    match = re.search(r"L(\d+)(?:-L?(\d+))?", anchor, re.IGNORECASE)
-    if match:
-        start = int(match.group(1))
-        end = int(match.group(2)) if match.group(2) else start
-    return {"line_start": start, "line_end": end}
-
-
-def source_spans_for(text: str) -> List[Dict[str, object]]:
-    spans = []
-    cite_blocks = CITE_RE.findall(text)
-    searchable = "\n".join(cite_blocks) if cite_blocks else text
-    for match in FILE_LINK_RE.finditer(searchable):
-        raw = (match.group(1) or match.group(2) or "").strip().strip("<>").replace("\\", "/")
-        path = normalize_ref(raw)
-        span: Dict[str, object] = {"path": path, "anchor": None, "line_start": None, "line_end": None}
-        if "#" in raw:
-            anchor = raw.split("#", 1)[1]
-            span["anchor"] = anchor
-            span.update(parse_line_anchor(anchor))
-        if path:
-            spans.append(span)
-    return spans
-
-
 def fingerprint_for(project_root: Path, ref: str) -> Dict[str, object]:
     normalized = normalize_ref(ref)
     path = resolve_source_path(project_root, normalized)
@@ -292,7 +265,6 @@ def page_record(markdown_path: Path, project_root: Path, wiki_root: Path, conten
         "config_keys": config_keys_for(text, project_root),
         "risk_flags": risk_flags_for(text, source_refs, project_root),
         "source_refs": source_refs,
-        "source_spans": source_spans_for(text),
         "source_fingerprints": fingerprints_for(project_root, source_refs),
         "related_globs": related_globs_for(source_refs),
         "headings": headings,

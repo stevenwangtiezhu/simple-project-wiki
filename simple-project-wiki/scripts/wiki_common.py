@@ -373,7 +373,7 @@ def default_topic_keys(project: Dict[str, object], profile: str) -> List[str]:
     keys: List[str] = []
     keys.extend(COMMON_TOPIC_KEYS)
 
-    if stack.intersection({"java-maven", "java-gradle", "spring-boot", "mybatis", "shiro", "python", "go", "rust", "php", "ruby"}):
+    if stack.intersection({"java-maven", "java-gradle", "spring-boot", "mybatis", "shiro", "kotlin", "python", "go", "rust", "php", "ruby"}):
         keys.extend(BACKEND_TOPIC_KEYS)
     if stack.intersection({"node", "vue", "react", "vite", "webpack"}):
         keys.extend(FRONTEND_TOPIC_KEYS)
