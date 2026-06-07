@@ -3,12 +3,12 @@
 Use this prompt when asking an AI agent to generate a RepoWiki-style project knowledge base.
 
 ```text
-你是一个资深软件架构文档工程师。请使用 simple-project-wiki 规则，为给定代码仓库生成一套可作为 AI 知识库使用的 `.spwiki/zh/content` 中文 Markdown 文档。
+你是一个资深软件架构文档工程师。请使用 simple-project-wiki 规则，为给定代码仓库生成一套可作为 AI 知识库使用的 `.spwiki/<content_root>` Markdown 文档。`<language>` 和 `<content_root>` 必须来自 `.spwiki/config.json`；页面语言必须与 `<language>` 一致。
 
 目标：
 - 生成基于真实代码事实的项目 wiki，而不是通用框架介绍。
-- 对单项目生成一个 `.spwiki/zh/content`。
-- 对 monorepo 先生成主项目总览 wiki，再为每个子项目分别生成自己的 `.spwiki/zh/content`。
+- 对单项目生成一个 `.spwiki/<content_root>`。
+- 对 monorepo 先生成主项目总览 wiki，再为每个子项目分别生成自己的 `.spwiki/<content_root>`。
 - 每个项目维护 `.spwiki/wiki-index.json`，用于智能体后续搜索、定位和精准增量维护。
 - `.spwiki/wiki-index.json` 应记录引用源码文件的 sha256，并生成 routes、symbols、config keys、risk flags、heading 行号等轻量检索字段；更新时以 sha256 是否变化和实体级命中作为跳过页面的依据。
 - 每个项目维护 `.spwiki/config.json`，默认关闭代码修改后的自动更新。
@@ -24,18 +24,20 @@ Use this prompt when asking an AI agent to generate a RepoWiki-style project kno
 6. 对低遵循智能体，按 `agent-operation-manual.md` 的批次检查节奏执行，每 3-5 页自查一次引用、TODO、敏感信息和索引状态。
 
 输出路径：
-- 默认输出到 `<项目根>/.spwiki/zh/content`，或 `.spwiki/config.json` 指定的 `<language>/content`。
-- 每个子项目输出到 `<子项目根>/.spwiki/<language>/content`。
+- 输出到 `<项目根>/.spwiki/<content_root>`；`<content_root>` 由 `.spwiki/config.json` 指定，通常是 `<language>/content`。
+- 每个子项目输出到 `<子项目根>/.spwiki/<content_root>`。
 - 索引输出到 `<项目根>/.spwiki/wiki-index.json`。
 - 配置输出到 `<项目根>/.spwiki/config.json`。
 
 推荐目录：
+根据 `.spwiki/config.json` 中的 `<language>` 使用已生成骨架里的本地化目录和页面名；下面只是 `zh` 目录名示例，非中文 wiki 不要照抄中文文件名。
 - 根级：`项目概述.md`、`快速开始.md`、`故障排除指南.md`。
 - 通用专题：`架构设计/`、`核心模块/`、`API接口文档/` 或 `API接口层/`、`数据模型设计/` 或 `数据库设计/`、`配置管理/`、`安全与权限/` 或 `安全考虑/`、`构建与部署/` 或 `部署与运维/`、`性能优化/`、`扩展开发/`、`开发指南/`。
 - 每个专题目录必须有同名索引页，例如 `架构设计/架构设计.md`。
 - 大型模块可以继续细分，例如 `核心模块/系统管理模块/用户管理.md`。
 
 单篇文档格式：
+章节标题也必须使用 `<language>` 对应语言；下面只是 `zh` 标题示例。
 1. `# 标题`
 2. `<cite>` 块，列出本文引用的真实文件。
 3. `## 目录`
@@ -69,7 +71,7 @@ Use this prompt when asking an AI agent to generate a RepoWiki-style project kno
 - 发现密钥、密码、token、证书、内网地址等敏感信息时，只说明“存在硬编码敏感配置风险”，不要复述具体值。
 
 写作风格：
-- 中文，面向后续 AI 编程助手和维护工程师。
+- 使用 `.spwiki/config.json` 中 `<language>` 对应的语言，面向后续 AI 编程助手和维护工程师。
 - 结构清晰，信息密度高，避免营销文案。
 - 优先解释模块职责、入口、关键流程、数据结构、依赖关系、风险点和修改注意事项。
 - 结论要总结该文档对维护者最有用的事实。
@@ -78,5 +80,5 @@ Use this prompt when asking an AI agent to generate a RepoWiki-style project kno
 ## Minimal Invocation
 
 ```text
-使用 simple-project-wiki 的规则，为当前仓库生成 `.spwiki/zh/content` 中文知识库。先扫描项目和子项目，创建 RepoWiki 风格目录，再逐篇基于真实代码补全文档并附来源引用。
+使用 simple-project-wiki 的规则，为当前仓库生成 `.spwiki/<content_root>` 知识库，语言使用 `.spwiki/config.json` 中的 `<language>`。先扫描项目和子项目，创建 RepoWiki 风格目录，再逐篇基于真实代码补全文档并附来源引用。
 ```
