@@ -32,7 +32,7 @@ Shared resources are in `../simple-project-wiki`:
 1. Run the strict recursive readiness check. If all intended wikis are ready, do not reinitialize.
 2. Run `python ../simple-project-wiki/scripts/scan_project.py <project-root> --output <scan.json>` to detect the root project, subprojects, manifests, source roots, config files, docs, and stack.
 3. Read `../simple-project-wiki/references/wiki-structure.md` and choose `deep` by default; use `light` or `balanced` only if the user asks or the project is small.
-4. Run `python ../simple-project-wiki/scripts/create_wiki_skeleton.py <scan.json> --write-config --build-index --language zh` unless the user asks for another language.
+4. Run `python ../simple-project-wiki/scripts/create_wiki_skeleton.py <scan.json> --write-config --build-index`; pass `--language <key>` only when the user asks for a specific language.
 5. Use `.spwiki/topic-overrides.json`, `.spwiki/project-aliases.json`, `.spwiki/search-hints.json`, and `.spwiki/risk-profile.json` for project-specific topics, aliases, hints, and risks. Keep the skill itself project-generic.
 6. Fill generated pages in batches from current source code using `../simple-project-wiki/references/wiki-generation-prompt.md` and the batch checkpoints in `../simple-project-wiki/references/agent-operation-manual.md`.
 7. Each page must include real source citations in a `<cite>` block. Do not invent files, APIs, tables, commands, tests, or deployment mechanisms.
@@ -41,7 +41,7 @@ Shared resources are in `../simple-project-wiki`:
 
 ## Output Contract
 
-- Content path: `.spwiki/<language>/content` from `.spwiki/config.json`, defaulting to `.spwiki/zh/content`.
+- Content path: `.spwiki/<language>/content` from `.spwiki/config.json`.
 - Config path: `.spwiki/config.json`.
 - Index path: `.spwiki/wiki-index.json`.
 - Sidecar config paths: `.spwiki/topic-overrides.json`, `.spwiki/project-aliases.json`, `.spwiki/search-hints.json`, `.spwiki/risk-profile.json`.
