@@ -4,11 +4,11 @@ Use this reference when installing or adapting `simple-project-wiki` for Claude 
 
 ## Purpose
 
-The shared skill package is written to be portable across Codex and Claude Code, but the two tools discover and trigger skills differently. Keep the shared package conservative, then add Claude-specific behavior in the Claude installation copy or in `CLAUDE.md`.
+The shared package is written to be portable across Codex and Claude Code, but the two tools discover and trigger skills differently. Keep the shared package conservative, then add Claude-specific behavior in the Claude installation copy or in `CLAUDE.md`.
 
 ## Install Layout
 
-For Claude Code, install all four sibling skill directories together:
+For Claude Code, install all four sibling package directories together. Only `simple-project-wiki-init`, `simple-project-wiki-search`, and `simple-project-wiki-update` are triggerable skills; `simple-project-wiki` is a shared resource directory.
 
 ```text
 .claude/
@@ -19,7 +19,7 @@ For Claude Code, install all four sibling skill directories together:
     └── simple-project-wiki-update/
 ```
 
-User-level installation may use the Claude Code user skills directory instead. Keep the sibling relationship because the init/search/update skills resolve shared scripts and references through `../simple-project-wiki`.
+User-level installation may use the Claude Code user skills directory instead. Keep the sibling relationship because the init/search/update skills resolve shared scripts and references through `../simple-project-wiki`. Do not add a `SKILL.md` or slash command registration to the shared `simple-project-wiki/` directory.
 
 ## Trigger Mapping
 
@@ -41,6 +41,8 @@ In Claude Code, use the equivalent slash-style trigger when available:
 
 If Claude Code auto-selects skills from frontmatter, the same `name` and `description` fields should still be enough to identify the relevant skill.
 
+There is intentionally no `/simple-project-wiki` trigger. For general wiki policy, use the installed references in `simple-project-wiki/references/` or invoke the specific init/search/update workflow.
+
 ## CLAUDE.md Guidance
 
 Add only a small always-on rule to `CLAUDE.md`; keep detailed procedures in the skill references:
@@ -48,7 +50,7 @@ Add only a small always-on rule to `CLAUDE.md`; keep detailed procedures in the 
 ```markdown
 ## Project Wiki Usage
 
-When querying, searching, locating, or analyzing this project, prefer the `simple-project-wiki` skills or equivalent project-wiki workflow first. Use `.spwiki` as the initial navigation source, then verify implementation facts against current source code. For initialization or refresh, follow the skill's agent operation manual and do not accept TODO-only pages as complete.
+When querying, searching, locating, or analyzing this project, prefer the `simple-project-wiki-search` workflow or equivalent project-wiki lookup process first. Use `.spwiki` as the initial navigation source, then verify implementation facts against current source code. For initialization or refresh, follow the relevant workflow skill's agent operation manual and do not accept TODO-only pages as complete.
 ```
 
 ## Low-Compliance Agent Setup
@@ -85,10 +87,10 @@ python ${CLAUDE_SKILL_DIR}/../simple-project-wiki/scripts/check_wiki_ready.py <p
 
 - Init and update skills write `.spwiki`; invoke them only when the user explicitly asks.
 - Search is read-only and should be the default workflow during ordinary development.
-- If creating a Claude-only copy and Claude Code supports side-effect metadata, mark init/update as manual-invocation skills such as `disable-model-invocation: true`. Do not add Claude-only frontmatter to the shared package unless the package is no longer intended to be Codex-compatible.
+- If creating a Claude-only copy and Claude Code supports side-effect metadata, mark init/update as manual-invocation skills such as `disable-model-invocation: true`. Do not add Claude-only frontmatter to the shared resource directory.
 
 ## Compatibility Notes
 
-- `agents/openai.yaml` is Codex/OpenAI UI metadata, not a Claude subagent definition.
+- `agents/openai.yaml` files in the workflow skill directories are Codex/OpenAI UI metadata, not Claude subagent definitions.
 - Claude subagents, if used, should be separate Markdown agent files in Claude's agent directory.
 - Prefer one search-oriented Claude subagent for read-only lookup. Avoid autonomous init/update subagents unless the user explicitly requests a documentation maintenance run.

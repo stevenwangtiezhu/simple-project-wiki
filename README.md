@@ -14,18 +14,16 @@ The goal is to improve project understanding and reduce unnecessary token usage 
 
 ## Skill Set
 
-The skill set is organized as multiple independent skills:
+The package has three user-facing workflow skills plus one shared resource directory:
 
-| Skill | Purpose |
-|------|---------|
-| `simple-project-wiki` | Shared policy, installation guidance, and ordinary wiki usage rules |
-| `simple-project-wiki-init` | Initialize `.spwiki` for a root project and detected subprojects |
-| `simple-project-wiki-update` | Update existing `.spwiki` from current source code |
-| `simple-project-wiki-search` | Search `.spwiki` first, then verify facts in source code |
+- `simple-project-wiki-init` initializes `.spwiki` for a root project and detected subprojects.
+- `simple-project-wiki-update` updates existing `.spwiki` content from current source code.
+- `simple-project-wiki-search` searches `.spwiki` first, then verifies facts in source code.
+- `simple-project-wiki` stores shared scripts, references, and policy text used by the workflow skills.
 
-These are skills, not plugins and not slash commands. In Codex, they should be callable from the `$` skill list.
+Only the init/update/search directories are intended to be callable from Codex or Claude Code. There is intentionally no `$simple-project-wiki` or `/simple-project-wiki` user command.
 
-Install all four sibling directories together. The init/search/update skills depend on shared scripts and references in `simple-project-wiki`.
+Install all four sibling directories together. The init/search/update skills depend on shared scripts and references in `simple-project-wiki`, but that shared directory is not a command entry point.
 
 ## Knowledge Base Layout
 
@@ -78,7 +76,7 @@ For monorepos, create one root `.spwiki` and one `.spwiki` for each detected sub
 
 Copy the skill directories into the skills directory used by your AI coding assistant.
 
-Expected skill directories:
+Expected package directories:
 
 ```text
 simple-project-wiki/
@@ -87,7 +85,13 @@ simple-project-wiki-update/
 simple-project-wiki-search/
 ```
 
-For Codex, confirm that the skills appear in the `$` skill list.
+For Codex, confirm that only the workflow skills appear in the `$` skill list:
+
+```text
+$simple-project-wiki-init
+$simple-project-wiki-search
+$simple-project-wiki-update
+```
 
 For Claude Code, copy the same four directories under `.claude/skills/` or the user-level Claude skills directory, preserving the sibling layout:
 
@@ -99,7 +103,7 @@ For Claude Code, copy the same four directories under `.claude/skills/` or the u
 └── simple-project-wiki-search/
 ```
 
-Codex examples use `$simple-project-wiki-*`. Claude Code users should invoke the equivalent `/simple-project-wiki-*` form when using slash-style skills.
+Codex examples use `$simple-project-wiki-init`, `$simple-project-wiki-search`, and `$simple-project-wiki-update`. Claude Code users should invoke the equivalent `/simple-project-wiki-init`, `/simple-project-wiki-search`, and `/simple-project-wiki-update` forms when using slash-style skills.
 
 ### 2. Add project guidance for Codex
 
@@ -108,7 +112,7 @@ When installing for Codex, add this rule to the project `AGENTS.md`:
 ```markdown
 ## Project Wiki Usage
 
-When querying, searching, locating, or analyzing this project, prefer the `simple-project-wiki` skills first. Use `.spwiki` as the initial navigation and knowledge source, then verify all implementation facts against the current source code.
+When querying, searching, locating, or analyzing this project, prefer the `simple-project-wiki-search` workflow or the equivalent `.spwiki` lookup process first. Use `.spwiki` as the initial navigation and knowledge source, then verify all implementation facts against the current source code.
 ```
 
 ### 3. Add project guidance for Claude Code
@@ -118,7 +122,7 @@ When installing for Claude Code, add this rule to the project `CLAUDE.md`:
 ```markdown
 ## Project Wiki Usage
 
-When querying, searching, locating, or analyzing this project, prefer the `simple-project-wiki` skills or equivalent project wiki workflow first. Use `.spwiki` as the initial navigation and knowledge source, then verify all implementation facts against the current source code.
+When querying, searching, locating, or analyzing this project, prefer the `simple-project-wiki-search` workflow or equivalent project wiki lookup process first. Use `.spwiki` as the initial navigation and knowledge source, then verify all implementation facts against the current source code.
 ```
 
 ### 4. Initialize a wiki
@@ -194,7 +198,7 @@ Uninstalling has two parts. Do whichever the user wants.
 
 ### 1. Remove the skill directories
 
-Delete the four sibling skill directories from wherever they were installed (for Claude Code, usually `.claude/skills/`; for Codex, the directory feeding the `$` skill list):
+Delete the three workflow skill directories and the shared resource directory from wherever they were installed (for Claude Code, usually `.claude/skills/`; for Codex, the skills/resources directory):
 
 ```text
 simple-project-wiki/

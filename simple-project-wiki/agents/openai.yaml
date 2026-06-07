@@ -1,4 +1,0 @@
-interface:
-  display_name: "Simple Project Wiki"
-  short_description: "Configure generic code-grounded project wikis"
-  default_prompt: "Use $simple-project-wiki to apply shared project wiki policy, Codex/Claude installation guidance, project sidecar config, wiki-first lookup, and source verification."

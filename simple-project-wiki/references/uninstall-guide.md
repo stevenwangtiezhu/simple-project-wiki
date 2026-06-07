@@ -4,12 +4,12 @@ Use this guide when the user asks to uninstall, remove, or disable the `simple-p
 
 Uninstalling has two independent parts. Do the one(s) the user asked for; confirm before deleting anything.
 
-1. **Remove the skill itself** — the four sibling skill directories copied into the assistant's skills location.
+1. **Remove the installed package directories** — the three workflow skill directories plus the shared resource directory copied into the assistant's skills location.
 2. **Remove the generated knowledge bases** — every `.spwiki/` folder this skill created inside target projects.
 
 > Deleting a `.spwiki/` folder permanently removes the generated wiki content, its `config.json`, the `wiki-index.json`, and all sidecar config (`topic-overrides.json`, `project-aliases.json`, `search-hints.json`, `risk-profile.json`) for that project. Source code is never touched. The wiki is regenerable from source with `$simple-project-wiki-init`, but any hand-edited wiki prose is lost.
 
-## Step 1 — Remove the skill directories
+## Step 1 — Remove the installed directories
 
 Delete these four sibling directories from wherever they were installed:
 
@@ -20,7 +20,7 @@ simple-project-wiki-update/
 simple-project-wiki-search/
 ```
 
-For Claude Code this is usually under `.claude/skills/` (project-level) or the user-level Claude skills directory. For Codex, remove them from the skills directory that feeds the `$` skill list.
+For Claude Code this is usually under `.claude/skills/` (project-level) or the user-level Claude skills directory. For Codex, remove the workflow skills from the directory that feeds the `$` skill list and remove the shared `simple-project-wiki/` resource directory from the same sibling layout.
 
 Also remove the "Project Wiki Usage" block from the project's `AGENTS.md` / `CLAUDE.md` if it was added during installation.
 
