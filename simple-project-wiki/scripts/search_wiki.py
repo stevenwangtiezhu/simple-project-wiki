@@ -98,6 +98,18 @@ def flatten_page(page: Dict[str, object]) -> Dict[str, str]:
     return {key: "\n".join(values).lower() for key, values in buckets.items()}
 
 
+def token_in_text(token: str, text: str) -> bool:
+    if len(token) < 3 and re.fullmatch(r"[0-9a-z_]+", token, re.IGNORECASE):
+        return re.search(rf"(?<![0-9a-z_]){re.escape(token)}(?![0-9a-z_])", text, re.IGNORECASE) is not None
+    return token in text
+
+
+def exact_query_in_text(query: str, text: str) -> bool:
+    if re.fullmatch(r"[0-9a-z_]{1,2}", query, re.IGNORECASE):
+        return token_in_text(query, text)
+    return query in text
+
+
 def score_page(page: Dict[str, object], query: str, tokens: List[str]) -> Tuple[int, List[str]]:
     fields = flatten_page(page)
     query_l = query.lower()
@@ -122,11 +134,11 @@ def score_page(page: Dict[str, object], query: str, tokens: List[str]) -> Tuple[
     for field, text in fields.items():
         if not text:
             continue
-        if query_l and query_l in text:
+        if query_l and exact_query_in_text(query_l, text):
             score += weights.get(field, 10) * 2
             reasons.append(f"exact:{field}")
         for token in tokens:
-            if token in text:
+            if token_in_text(token, text):
                 score += weights.get(field, 10)
                 reasons.append(f"{token}:{field}")
 
@@ -139,7 +151,7 @@ def heading_hits(page: Dict[str, object], tokens: List[str], limit: int = 5) -> 
         if not isinstance(heading, dict):
             continue
         text = " ".join(str(heading.get(key, "")) for key in ("title", "anchor")).lower()
-        reasons = [token for token in tokens if token in text]
+        reasons = [token for token in tokens if token_in_text(token, text)]
         if reasons:
             hits.append({
                 "title": heading.get("title"),
@@ -188,7 +200,6 @@ def search(project_root: Path, query: str, limit: int, root_only: bool) -> Dict[
         wiki_project_root = index_path.parent.parent
         tokens = expand_query_terms(wiki_project_root, query) or base_tokens
         seen_tokens.update(tokens)
-        expanded_query = " ".join(tokens) if tokens else query
         index = load_json(index_path)
         if "_load_error" in index:
             errors.append({"index_path": str(index_path), "error": str(index["_load_error"])})
@@ -199,7 +210,7 @@ def search(project_root: Path, query: str, limit: int, root_only: bool) -> Dict[
         for page in pages:
             if not isinstance(page, dict):
                 continue
-            score, reasons = score_page(page, expanded_query, tokens)
+            score, reasons = score_page(page, query, tokens)
             if score > 0 or not query:
                 hits.append(page_hit(index_path, page, score, reasons, tokens))
 
