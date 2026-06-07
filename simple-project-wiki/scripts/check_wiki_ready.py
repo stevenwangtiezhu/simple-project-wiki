@@ -25,6 +25,16 @@ from wiki_common import (
 
 CITE_RE = re.compile(r"<cite>(.*?)</cite>", re.DOTALL | re.IGNORECASE)
 MIN_STRICT_BODY_CHARS = 160
+SUPPORTED_INDEX_SCHEMA_VERSIONS = {1, 2, 3}
+GRAPH_STAGE_ARTIFACTS = {
+    "map": ["map.json"],
+    "postings": ["map.json", "postings.json"],
+    "structured": ["map.json", "postings.json", "entities.json"],
+    "cards": ["map.json", "postings.json", "entities.json", "cards.json"],
+    "freshness": ["map.json", "postings.json", "entities.json", "cards.json", "fingerprints.json", "ledger.json"],
+    "answers": ["map.json", "postings.json", "entities.json", "cards.json", "fingerprints.json", "ledger.json"],
+    "bundles": ["map.json", "postings.json", "entities.json", "cards.json", "fingerprints.json", "ledger.json", "bundles.json"],
+}
 SKIP_DIRS = {
     ".git",
     ".idea",
@@ -163,6 +173,61 @@ def pages_missing_source_refs(page_map: Dict[str, Dict[str, object]]) -> List[st
     return result
 
 
+def index_model_for(config: Dict[str, object], index: Dict[str, object]) -> str:
+    value = index.get("index_model") or config.get("index_model") or "rows"
+    return str(value).strip().lower() or "rows"
+
+
+def graph_stage_for(config: Dict[str, object], index: Dict[str, object], project_root: Path) -> str:
+    value = index.get("graph_stage") or config.get("graph_stage")
+    if value:
+        return str(value).strip().lower()
+
+    graph_root = project_root / ".spwiki" / "graph"
+    detected = ""
+    for stage, artifacts in GRAPH_STAGE_ARTIFACTS.items():
+        if any((graph_root / artifact).exists() for artifact in artifacts):
+            detected = stage
+    return detected or "map"
+
+
+def graph_missing_artifacts(project_root: Path, stage: str) -> List[str]:
+    artifacts = GRAPH_STAGE_ARTIFACTS.get(stage, GRAPH_STAGE_ARTIFACTS["map"])
+    graph_root = project_root / ".spwiki" / "graph"
+    return [f".spwiki/graph/{artifact}" for artifact in artifacts if not (graph_root / artifact).is_file()]
+
+
+def index_valid_for(
+    project_root: Path,
+    config: Dict[str, object],
+    index: Dict[str, object],
+    expected_content_root: str,
+) -> Dict[str, object]:
+    schema_valid = index.get("schema_version") in SUPPORTED_INDEX_SCHEMA_VERSIONS
+    content_root_valid = index.get("content_root") == expected_content_root
+    index_model = index_model_for(config, index)
+    graph_stage = None
+    graph_missing: List[str] = []
+
+    if index_model == "rows":
+        model_valid = isinstance(index.get("pages"), list)
+    elif index_model == "graph":
+        graph_stage = graph_stage_for(config, index, project_root)
+        graph_missing = graph_missing_artifacts(project_root, graph_stage)
+        model_valid = not graph_missing
+    else:
+        model_valid = False
+
+    return {
+        "valid": schema_valid and content_root_valid and model_valid,
+        "model": index_model,
+        "schema_valid": schema_valid,
+        "content_root_valid": content_root_valid,
+        "graph_stage": graph_stage,
+        "graph_missing_artifacts": graph_missing,
+    }
+
+
 def unindexed_markdown_pages(project_root: Path, config: Dict[str, object], page_map: Dict[str, Dict[str, object]]) -> List[str]:
     wiki_root = project_root / ".spwiki"
     indexed = set(page_map.keys())
@@ -202,23 +267,23 @@ def check(project_root: Path, strict: bool = False) -> Dict[str, object]:
     index = load_json(index_path)
     expected_content_root = content_root_rel(config)
     page_map = index_page_map(index)
-    index_valid = (
-        index.get("schema_version") in {1, 2}
-        and index.get("content_root") == expected_content_root
-        and isinstance(index.get("pages"), list)
-    )
+    index_state = index_valid_for(project_root, config, index, expected_content_root)
+    index_valid = bool(index_state["valid"])
     cfg_valid = config_valid(config)
 
-    strict_details = {
+    strict_content_details = {
         "placeholder_files": placeholder_files(project_root, config) if strict else [],
         "pages_without_cite": pages_without_cite(project_root, config) if strict else [],
         "short_content_pages": short_content_pages(project_root, config) if strict else [],
         "secret_hits": secret_hit_records(project_root, config) if strict else [],
         "mojibake_hits": mojibake_hit_records(project_root, config) if strict else [],
-        "unindexed_pages": unindexed_markdown_pages(project_root, config, page_map) if strict and index_valid else [],
-        "pages_missing_source_refs": pages_missing_source_refs(page_map) if strict and index_valid else [],
-        "missing_cited_refs": missing_cited_refs(page_map) if strict and index_valid else [],
     }
+    strict_index_details = {
+        "unindexed_pages": unindexed_markdown_pages(project_root, config, page_map) if strict and index_valid and index_state["model"] == "rows" else [],
+        "pages_missing_source_refs": pages_missing_source_refs(page_map) if strict and index_valid and index_state["model"] == "rows" else [],
+        "missing_cited_refs": missing_cited_refs(page_map) if strict and index_valid and index_state["model"] == "rows" else [],
+    }
+    strict_details = {**strict_content_details, **strict_index_details}
     strict_valid = not any(strict_details.values())
     ready = not missing and index_valid and cfg_valid and (strict_valid if strict else True)
     return {
@@ -229,6 +294,11 @@ def check(project_root: Path, strict: bool = False) -> Dict[str, object]:
         "language": config.get("language"),
         "content_root": expected_content_root,
         "index_valid": index_valid,
+        "index_model": index_state["model"],
+        "index_schema_valid": index_state["schema_valid"],
+        "index_content_root_valid": index_state["content_root_valid"],
+        "graph_stage": index_state["graph_stage"],
+        "graph_missing_artifacts": index_state["graph_missing_artifacts"],
         "config_valid": cfg_valid,
         "present": present,
         "missing": missing,
@@ -286,6 +356,10 @@ def print_not_ready(result: Dict[str, object]) -> None:
             print(f"- {item}")
     if not result.get("index_valid"):
         print(f"index invalid or missing for {result['project_root']}")
+    if result.get("graph_missing_artifacts"):
+        print(f"graph_missing_artifacts for {result['project_root']}:")
+        for item in result["graph_missing_artifacts"]:
+            print(f"- {item}")
     if not result.get("config_valid"):
         print(f"config invalid or missing for {result['project_root']}")
     for key in ("placeholder_files", "pages_without_cite", "short_content_pages", "unindexed_pages", "pages_missing_source_refs", "missing_cited_refs", "secret_hits", "mojibake_hits"):
